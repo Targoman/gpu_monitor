@@ -1,0 +1,9 @@
+# Core dependencies
+pynvml>=11.0.0
+requests>=2.25.0
+
+# Platform-specific dependencies
+colorama>=0.4.1; sys_platform == 'win32'  # For Windows color support
+
+# Python version compatibility
+typing-extensions>=3.7.4; python_version < '3.8'  # For Python 3.6 compatibility 
