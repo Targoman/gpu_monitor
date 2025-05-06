@@ -71,7 +71,8 @@ def parse_args() -> argparse.Namespace:
                       help='Set logging level')
     parser.add_argument('-ls', '--list-sends', action='store_true', help='List all send attempts')
     parser.add_argument('-ss', '--search-send', help='Search send attempts by aggregation time (YYYY-MM-DD HH:00)')
-    parser.add_argument('-sc', '--show-collection', help='Show raw collected data for a specific timestamp (YYYY-MM-DD HH:MM:SS)')
+    parser.add_argument('-sc', '--show-collection', nargs='?', const='', metavar='TIMESTAMP',
+                      help='Show raw collected data for a specific timestamp (YYYY-MM-DD HH:MM:SS) or current hour if not specified')
     parser.add_argument('-f', '--output-format', choices=['json', 'csv'], default='json',
                       help='Output format for collection data (default: json)')
     return parser.parse_args()

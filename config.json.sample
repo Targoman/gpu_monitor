@@ -1,15 +1,9 @@
 {
-    "server": {
-        "url": "",  // Leave empty for offline mode, set to server URL for online mode
-        "contract_number": ""  // Required only in online mode
-    },
     "intervals": {
-        "retry": 60,        // Retry interval in seconds
-        "collection": 60,   // Data collection interval in seconds (1 minute)
-        "aggregation": 3600 // Aggregation interval in seconds (1 hour)
+        "collection": 60   // Data collection interval in seconds (1 minute)
     },
     "files": {
-        "log": "run/server_communication.log",
-        "database": "run/gpu_metrics.db"
+        "log": "run/db_monitor.log",
+        "database": "run/metrics.db"
     }
 } 

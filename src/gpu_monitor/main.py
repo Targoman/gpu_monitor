@@ -23,8 +23,8 @@ import os
 from typing import Dict, Any, List
 from .config import parse_args, get_config
 from .logging import setup_logging, log_message
-from .nvml import initialize_nvml, get_gpu_info, shutdown_nvml
 from .db import Database
+from .nvml import initialize_nvml, get_gpu_info, shutdown_nvml
 from .server import ServerClient
 
 def format_collection_data(data, format_type='json'):  # type: (List[Dict[str, Any]], str) -> str
@@ -73,49 +73,56 @@ def main():
         level=config['logging']['level'],
         verbose=args.verbose
     )
-    log_message("Starting GPU Monitor", level='INFO')
+    if args.verbose:
+        log_message("Starting GPU Monitor", level='INFO')
     
     # Initialize database
-    db = Database(config['paths']['database'])
+    db = Database(config['paths']['database'], verbose=args.verbose)
     
     # Handle special commands
-    if args.list_sends:
-        sends = db.get_all_sends()
-        if not sends:
-            print("No send attempts found")
+    if args.list_sends or args.search_send or args.show_collection is not None:
+        # Database-only mode
+        if args.list_sends:
+            sends = db.get_all_sends()
+            if not sends:
+                print("No send attempts found")
+                return
+            
+            print("\nSend Attempts:")
+            print("Aggregation Time | Attempts | First Attempt | Last Attempt | Last Error | UID | Sent")
+            for send in sends:
+                print(f"{send['aggregation_time']} | {send['attempts']} | {send['first_attempt']} | {send['last_attempt']} | {send['last_error']} | {send['uid']} | {send['sent']}")
             return
         
-        print("\nSend Attempts:")
-        print("Aggregation Time | Attempts | First Attempt | Last Attempt | Last Error | UID | Sent")
-        for send in sends:
-            print(f"{send['aggregation_time']} | {send['attempts']} | {send['first_attempt']} | {send['last_attempt']} | {send['last_error']} | {send['uid']} | {send['sent']}")
-        return
-    
-    if args.search_send:
-        send = db.get_send_by_time(args.search_send)
-        if not send:
-            print(f"No send attempt found for {args.search_send}")
+        if args.search_send:
+            send = db.get_send_by_time(args.search_send)
+            if not send:
+                print(f"No send attempt found for {args.search_send}")
+                return
+            
+            print("\nSend Attempt Details:")
+            print(f"Aggregation Time: {send['aggregation_time']}")
+            print(f"Attempts: {send['attempts']}")
+            print(f"First Attempt: {send['first_attempt']}")
+            print(f"Last Attempt: {send['last_attempt']}")
+            print(f"Last Error: {send['last_error']}")
+            print(f"UID: {send['uid']}")
+            print(f"Sent: {send['sent']}")
             return
         
-        print("\nSend Attempt Details:")
-        print(f"Aggregation Time: {send['aggregation_time']}")
-        print(f"Attempts: {send['attempts']}")
-        print(f"First Attempt: {send['first_attempt']}")
-        print(f"Last Attempt: {send['last_attempt']}")
-        print(f"Last Error: {send['last_error']}")
-        print(f"UID: {send['uid']}")
-        print(f"Sent: {send['sent']}")
-        return
-    
-    if args.show_collection:
-        data = db.get_collection_by_time(args.show_collection)
-        if not data:
-            print(f"No collection data found for {args.show_collection}")
+        if args.show_collection is not None:
+            # If show_collection is empty string, it means show current hour
+            timestamp = None if args.show_collection == "" else args.show_collection
+            collection_data = db.get_collection_by_time(timestamp)
+            if collection_data:
+                print(format_collection_data(collection_data, args.output_format))
+            else:
+                print(f"No collection data found for {timestamp if timestamp else 'current hour'}")
+                if args.verbose:
+                    db.check_database_contents()
             return
-        
-        print(format_collection_data(data, args.output_format))
-        return
     
+    # If we get here, we're in normal collection mode
     # Initialize NVML
     try:
         initialize_nvml(verbose=args.verbose)
@@ -137,7 +144,7 @@ def main():
             # Collect GPU metrics
             try:
                 gpu_info = get_gpu_info(verbose=args.verbose)
-                db.store_raw_data(gpu_info)
+                db.save_collection(gpu_info)
                 log_message("GPU metrics collected", level='DEBUG')
             except Exception as e:
                 log_message(f"Failed to collect GPU metrics: {str(e)}", level='ERROR')
@@ -150,6 +157,7 @@ def main():
     finally:
         shutdown_nvml()
         db.close()
+        log_message("Shutdown complete", level='INFO')
 
 if __name__ == '__main__':
     main()

@@ -33,56 +33,61 @@ def initialize_nvml(verbose: bool = False) -> None:
         raise
 
 def get_gpu_info(verbose: bool = False) -> Dict[str, Any]:
-    """Get information about all GPUs."""
+    """Get GPU information using NVML."""
+    gpu_info = {"gpus": []}
+    
     try:
-        # Get device count
         device_count = pynvml.nvmlDeviceGetCount()
-        log_message(f"Found {device_count} GPU(s)", verbose=verbose)
-
-        # Get information for each GPU
-        gpus = {}
+        if verbose:
+            log_message(f"Found {device_count} GPU(s)", level='DEBUG')
+        
         for i in range(device_count):
             handle = pynvml.nvmlDeviceGetHandleByIndex(i)
-            
-            # Get basic info
             name = pynvml.nvmlDeviceGetName(handle)
-            memory_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
-            temperature = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+            if verbose:
+                log_message(f"GPU {i}: {name}", level='DEBUG')
+            
+            # Get GPU metrics
+            temp = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+            memory = pynvml.nvmlDeviceGetMemoryInfo(handle)
             utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
-            power_usage = pynvml.nvmlDeviceGetPowerUsage(handle) / 1000.0  # Convert to watts
+            power = pynvml.nvmlDeviceGetPowerUsage(handle) / 1000.0  # Convert to watts
+            fan = pynvml.nvmlDeviceGetFanSpeed(handle)
+            graphics_clock = pynvml.nvmlDeviceGetClockInfo(handle, pynvml.NVML_CLOCK_GRAPHICS)
+            memory_clock = pynvml.nvmlDeviceGetClockInfo(handle, pynvml.NVML_CLOCK_MEM)
             
-            # Get fan speed if available
-            try:
-                fan_speed = pynvml.nvmlDeviceGetFanSpeed(handle)
-            except pynvml.NVMLError:
-                fan_speed = 0
+            # Get GPU UUID
+            gpu_uuid = pynvml.nvmlDeviceGetUUID(handle)
+            gpu_uuid = gpu_uuid.decode('utf-8') if isinstance(gpu_uuid, bytes) else str(gpu_uuid)
             
-            # Get clock speeds if available
-            try:
-                graphics_clock = pynvml.nvmlDeviceGetClockInfo(handle, pynvml.NVML_CLOCK_GRAPHICS)
-                memory_clock = pynvml.nvmlDeviceGetClockInfo(handle, pynvml.NVML_CLOCK_MEM)
-            except pynvml.NVMLError:
-                graphics_clock = 0
-                memory_clock = 0
+            # Get PCI info
+            pci_info = pynvml.nvmlDeviceGetPciInfo(handle)
+            # Use busId directly as it's the most reliable PCI identifier
+            pci_bus_id = pci_info.busId.decode('utf-8') if isinstance(pci_info.busId, bytes) else str(pci_info.busId)
             
-            # Store GPU info
-            gpus[str(i)] = {
-                'name': name.decode('utf-8'),
-                'temperature': temperature,
-                'memory_used': memory_info.used,
-                'memory_total': memory_info.total,
-                'gpu_utilization': utilization.gpu,
-                'memory_utilization': utilization.memory,
-                'power_usage': power_usage,
-                'fan_speed': fan_speed,
-                'graphics_clock': graphics_clock,
-                'memory_clock': memory_clock
-            }
+            # Convert name to string if it's bytes
+            gpu_name = name.decode('utf-8') if isinstance(name, bytes) else str(name)
             
-            log_message(f"GPU {i}: {name.decode('utf-8')}", verbose=verbose)
-
-        return {'gpus': gpus}
-
+            gpu_info["gpus"].append({
+                "uid": gpu_uuid,
+                "pci_bus_id": pci_bus_id,
+                "name": gpu_name,
+                "temperature": temp,
+                "memory_used": memory.used,
+                "memory_total": memory.total,
+                "gpu_utilization": utilization.gpu,
+                "memory_utilization": utilization.memory,
+                "power_usage": power,
+                "fan_speed": fan,
+                "graphics_clock": graphics_clock,
+                "memory_clock": memory_clock
+            })
+            
+            if verbose:
+                log_message(f"GPU {i} PCI Bus ID: {pci_bus_id}", level='DEBUG')
+        
+        return gpu_info
+        
     except pynvml.NVMLError as e:
         log_message(f"Error getting GPU info: {str(e)}", level='error', verbose=verbose)
         raise
