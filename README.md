@@ -132,6 +132,147 @@ gpu_monitor
 | `--show-collection SHOW_COLLECTION` | `-sc` | Show collection data for a specific time |
 | `--output-format {json,csv}` | `-f` | Output format for collection data (default: json) |
 
+### Usage Examples
+
+#### Online Mode
+
+1. Start monitoring with default settings:
+```bash
+gpu_monitor
+```
+
+2. View current GPU metrics in JSON format:
+```bash
+gpu_monitor --show-collection "" --output-format json
+```
+Example output:
+```json
+[
+  {
+    "timestamp": "2024-03-20T14:30:00",
+    "gpus": [
+      {
+        "uid": "GPU-2e87a766-ac74-ea75-1dbe-13eb97066bd5",
+        "pci_bus_id": "00000000:25:00.0",
+        "name": "NVIDIA GeForce RTX 4090",
+        "temperature": 29,
+        "memory_used": 361431040,
+        "memory_total": 24146608128,
+        "gpu_utilization": 0,
+        "memory_utilization": 0,
+        "power_usage": 12.985,
+        "fan_speed": 30,
+        "graphics_clock": 210,
+        "memory_clock": 405
+      },
+      {
+        "uid": "GPU-1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p",
+        "pci_bus_id": "00000000:26:00.0",
+        "name": "NVIDIA H100",
+        "temperature": 35,
+        "memory_used": 4294967296,
+        "memory_total": 85899345920,
+        "gpu_utilization": 0,
+        "memory_utilization": 0,
+        "power_usage": 15.234,
+        "fan_speed": 25,
+        "graphics_clock": 180,
+        "memory_clock": 350
+      }
+    ]
+  }
+]
+```
+
+3. View aggregated hourly data in CSV format:
+```bash
+gpu_monitor --show-collection "2024-03-20T14:00:00" --output-format csv
+```
+Example output:
+```csv
+timestamp,uid,pci_bus_id,name,temperature,memory_used,memory_total,gpu_utilization,memory_utilization,power_usage,fan_speed,graphics_clock,memory_clock
+2024-03-20T14:00:00,GPU-2e87a766-ac74-ea75-1dbe-13eb97066bd5,00000000:25:00.0,NVIDIA GeForce RTX 4090,29,361431040,24146608128,0,0,12.985,30,210,405
+2024-03-20T14:00:00,GPU-1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p,00000000:26:00.0,NVIDIA H100,35,4294967296,85899345920,0,0,15.234,25,180,350
+```
+
+#### Offline Mode
+
+1. Start monitoring in offline mode:
+```bash
+gpu_monitor --offline
+```
+
+2. View send attempts history:
+```bash
+gpu_monitor --list-sends
+```
+Example output:
+```
+Send Attempts:
+Aggregation Time | Attempts | First Attempt | Last Attempt | Last Error | UID | Sent
+2024-03-20T13:00:00 | 3 | 2024-03-20T14:00:05 | 2024-03-20T14:00:15 | Connection timeout | abc123 | 0
+2024-03-20T12:00:00 | 1 | 2024-03-20T13:00:05 | 2024-03-20T13:00:05 | None | def456 | 1
+```
+
+3. Search for specific send attempt:
+```bash
+gpu_monitor --search-send "2024-03-20T13:00:00"
+```
+Example output:
+```
+Send Attempt Details:
+Aggregation Time: 2024-03-20T13:00:00
+Attempts: 1
+First Attempt: 2024-03-20T13:00:05
+Last Attempt: 2024-03-20T13:00:05
+Last Error: None
+UID: def456
+Sent: 1
+```
+
+4. View raw collection data for a specific time:
+```bash
+gpu_monitor --show-collection "2024-03-20T13:30:00" --output-format json
+```
+Example output:
+```json
+[
+  {
+    "timestamp": "2024-03-20T13:30:00",
+    "gpus": [
+      {
+        "uid": "GPU-2e87a766-ac74-ea75-1dbe-13eb97066bd5",
+        "pci_bus_id": "00000000:25:00.0",
+        "name": "NVIDIA GeForce RTX 4090",
+        "temperature": 29,
+        "memory_used": 361431040,
+        "memory_total": 24146608128,
+        "gpu_utilization": 0,
+        "memory_utilization": 0,
+        "power_usage": 12.985,
+        "fan_speed": 30,
+        "graphics_clock": 210,
+        "memory_clock": 405
+      },
+      {
+        "uid": "GPU-1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p",
+        "pci_bus_id": "00000000:26:00.0",
+        "name": "NVIDIA H100",
+        "temperature": 35,
+        "memory_used": 4294967296,
+        "memory_total": 85899345920,
+        "gpu_utilization": 0,
+        "memory_utilization": 0,
+        "power_usage": 15.234,
+        "fan_speed": 25,
+        "graphics_clock": 180,
+        "memory_clock": 350
+      }
+    ]
+  }
+]
+```
+
 ### Running as a Service
 
 #### Linux (systemd)
